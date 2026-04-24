@@ -49,12 +49,19 @@
         }
 
         /* Navigation */
+        header {
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            background: white;
+            border-bottom: 1px solid var(--border-light);
+        }
+
         nav {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            height: 80px;
-            margin-bottom: 40px;
+            height: 72px;
         }
 
         .nav-logo {
@@ -64,6 +71,7 @@
             font-size: 1.25rem;
             font-weight: 800;
             letter-spacing: -0.04em;
+            cursor: pointer;
         }
 
         .nav-logo .dot {
@@ -81,9 +89,11 @@
             font-size: 0.875rem;
             font-weight: 600;
             transition: color 0.2s;
+            cursor: pointer;
         }
 
-        .nav-links a:hover {
+        .nav-links a:hover,
+        .nav-links a.active {
             color: var(--text-main);
         }
 
@@ -104,6 +114,16 @@
         .btn-github:hover {
             background: #f9fafb;
             border-color: #d1d5db;
+        }
+
+        /* Views */
+        .view {
+            display: none;
+            padding-top: 40px;
+        }
+
+        .view.active {
+            display: block;
         }
 
         /* Hero Section */
@@ -180,6 +200,7 @@
             font-size: 1rem;
             font-family: inherit;
             outline: none;
+            background: transparent;
         }
 
         .search-box button {
@@ -358,101 +379,437 @@
 </head>
 
 <body>
-    <div class="container">
-        <nav>
-            <div class="nav-logo">
-                Lurah<span class="dot">.</span>
-            </div>
-            <div class="nav-links">
-                <a href="#">Generator</a>
-                <a href="#">Team</a>
-                <a href="#">Documentation</a>
-                <a href="#">API</a>
-                <a href="#">Pricing</a>
-            </div>
-            <a href="https://github.com/rheatkhs/lurah" class="btn-github">
-                GitHub <i class="ri-github-fill"></i>
-            </a>
-        </nav>
-
-        <section class="hero">
-            <div class="pill-badge">
-                <div class="dot-pulse"></div>
-                Intelligent Reporting Engine
-            </div>
-            <h1 class="hero-title">Lurah<span class="dot">.</span></h1>
-            <p class="hero-desc">
-                Streamline your security assessments. Transform raw vulnerability data into detailed, professional
-                security reports engineered for maximum impact.
-            </p>
-
-            <div class="search-container">
-                <div class="search-box">
-                    <input type="text" id="project-path" placeholder="Select project folder..." readonly style="cursor: pointer;">
-                    <div id="browse-btn" style="display: flex; align-items: center; padding: 0 1.5rem; cursor: pointer; color: var(--text-muted); transition: color 0.2s;">
-                        <i class="ri-folder-open-fill" style="font-size: 1.25rem;"></i>
-                    </div>
-                    <button id="scan-btn">Run Audit</button>
+    <header>
+        <div class="container">
+            <nav>
+                <div class="nav-logo" onclick="showView('scanner')">
+                    Lurah<span class="dot">.</span>
                 </div>
-            </div>
-        </section>
+                <div class="nav-links">
+                    <a onclick="showView('scanner')" id="link-scanner" class="active">Scanner</a>
+                    <a onclick="showView('team')" id="link-team">Team</a>
+                    <a onclick="showView('documentation')" id="link-documentation">Documentation</a>
+                </div>
+                <a href="https://github.com/rheatkhs/lurah" class="btn-github">
+                    GitHub <i class="ri-github-fill"></i>
+                </a>
+            </nav>
+        </div>
+    </header>
 
-        <div id="loader" class="loader">
-            <div class="spinner"></div>
-            <p style="font-size: 0.875rem; font-weight: 600;">Analyzing codebase...</p>
+    <div class="container">
+        <!-- Scanner View -->
+        <div id="view-scanner" class="view active">
+            <section class="hero">
+                <div class="pill-badge">
+                    <div class="dot-pulse"></div>
+                    Intelligent Reporting Engine
+                </div>
+                <h1 class="hero-title">Lurah<span class="dot">.</span></h1>
+                <p class="hero-desc">
+                    Streamline your security assessments. Transform raw vulnerability data into detailed, professional
+                    security reports engineered for maximum impact.
+                    <br>
+                    <span style="font-size: 0.8rem; opacity: 0.8; font-style: italic;">Note: This tool is for reference
+                        (acuan). Perform manual checks to ensure full compliance.</span>
+                </p>
+
+                <div class="search-container">
+                    <div class="search-box">
+                        <input type="text" id="project-path" placeholder="Select project folder..." readonly
+                            style="cursor: pointer;">
+                        <div id="browse-btn"
+                            style="display: flex; align-items: center; padding: 0 1.5rem; cursor: pointer; color: var(--text-muted); transition: color 0.2s;">
+                            <i class="ri-folder-open-fill" style="font-size: 1.25rem;"></i>
+                        </div>
+                        <button id="scan-btn">Run Audit</button>
+                    </div>
+                </div>
+            </section>
+
+            <div id="loader" class="loader">
+                <div class="spinner"></div>
+                <p style="font-size: 0.875rem; font-weight: 600;">Analyzing codebase...</p>
+            </div>
+
+            <section id="results-area" class="results-section" style="display: none;">
+                <div class="summary-grid">
+                    <div class="summary-card">
+                        <span class="val" id="c-total">0</span>
+                        <span class="label">Findings</span>
+                    </div>
+                    <div class="summary-card card-red">
+                        <span class="val" id="c-crit" style="color: var(--accent-red)">0</span>
+                        <span class="label">Critical</span>
+                    </div>
+                    <div class="summary-card card-orange">
+                        <span class="val" id="c-hi" style="color: var(--accent-yellow)">0</span>
+                        <span class="label">High</span>
+                    </div>
+                    <div class="summary-card card-blue">
+                        <span class="val" id="c-med" style="color: var(--accent-cyan)">0</span>
+                        <span class="label">Medium</span>
+                    </div>
+                </div>
+
+                <!-- Live Filter Box -->
+                <div style="margin-bottom: 2rem; position: relative;">
+                    <input type="text" id="filter-input" placeholder="Filter findings by file or recommendation..."
+                        style="width: 100%; padding: 1rem 1.5rem; border: 1px solid var(--border-light); border-radius: 0.75rem; font-family: inherit; font-size: 0.875rem; outline: none; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05); transition: border-color 0.2s;">
+                    <i class="ri-search-2-line"
+                        style="position: absolute; right: 1.5rem; top: 50%; transform: translateY(-50%); color: var(--text-muted);"></i>
+                </div>
+
+                <div id="findings-list">
+                    <!-- findings injected here -->
+                </div>
+
+                <!-- Pagination Controls -->
+                <div id="pagination-controls"
+                    style="display: none; justify-content: center; align-items: center; gap: 2rem; margin-top: 3rem; padding-top: 2rem; border-top: 1px solid var(--border-light);">
+                    <button id="prev-page"
+                        style="background: white; color: var(--text-main); border: 1px solid var(--border-light); padding: 0.5rem 1.5rem; border-radius: 999px; font-size: 0.75rem; font-weight: 700;">
+                        <i class="ri-arrow-left-s-line"></i> Previous
+                    </button>
+                    <span id="page-info"
+                        style="font-size: 0.75rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.1em;">Page
+                        1 of 1</span>
+                    <button id="next-page"
+                        style="background: white; color: var(--text-main); border: 1px solid var(--border-light); padding: 0.5rem 1.5rem; border-radius: 999px; font-size: 0.75rem; font-weight: 700;">
+                        Next <i class="ri-arrow-right-s-line"></i>
+                    </button>
+                </div>
+            </section>
+
+            <div id="empty-state" style="text-align: center; color: var(--text-muted); padding: 40px; display: none;">
+                No findings detected. Your project is clean.
+            </div>
         </div>
 
-        <section id="results-area" class="results-section" style="display: none;">
-            <div class="summary-grid">
-                <div class="summary-card">
-                    <span class="val" id="c-total">0</span>
-                    <span class="label">Findings</span>
+        <!-- Team View -->
+        <div id="view-team" class="view">
+            <h2 style="font-size: 2.5rem; font-weight: 800; letter-spacing: -0.04em; margin-bottom: 1rem;">Our Team<span
+                    class="dot" style="color: var(--brand-accent);">.</span></h2>
+            <p style="color: var(--text-muted); margin-bottom: 3rem;">The synergy between human intuition and artificial
+                intelligence.</p>
+
+            <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 2rem;">
+                <!-- Febiadi -->
+                <div
+                    style="background: white; border: 1px solid var(--border-light); border-radius: 1.5rem; padding: 2.5rem; text-align: center; transition: transform 0.2s; cursor: default;">
+                    <div
+                        style="width: 100px; height: 100px; background: #f8fafc; border: 1px solid var(--border-light); border-radius: 50%; margin: 0 auto 1.5rem; display: flex; align-items: center; justify-content: center;">
+                        <i class="ri-user-star-fill" style="font-size: 2.5rem; color: var(--text-main);"></i>
+                    </div>
+                    <h3 style="font-weight: 800; font-size: 1.25rem; margin-bottom: 0.5rem; letter-spacing: -0.02em;">
+                        Febiadi Wisnu Akbar</h3>
+                    <p
+                        style="font-size: 0.875rem; font-weight: 700; color: var(--brand-accent); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 1rem;">
+                        Lead Developer</p>
+                    <p style="font-size: 0.875rem; color: var(--text-muted); line-height: 1.6;">Visionary behind Lurah
+                        and orchestrator of SPBE compliance standards.</p>
                 </div>
-                <div class="summary-card card-red">
-                    <span class="val" id="c-crit" style="color: var(--accent-red)">0</span>
-                    <span class="label">Critical</span>
+
+                <!-- Gemini -->
+                <div
+                    style="background: white; border: 1px solid var(--border-light); border-radius: 1.5rem; padding: 2.5rem; text-align: center;">
+                    <div
+                        style="width: 100px; height: 100px; background: #f0f9ff; border: 1px solid #e0f2fe; border-radius: 50%; margin: 0 auto 1.5rem; display: flex; align-items: center; justify-content: center;">
+                        <i class="ri-sparkling-fill" style="font-size: 2.5rem; color: #0ea5e9;"></i>
+                    </div>
+                    <h3 style="font-weight: 800; font-size: 1.25rem; margin-bottom: 0.5rem; letter-spacing: -0.02em;">
+                        Gemini</h3>
+                    <p
+                        style="font-size: 0.875rem; font-weight: 700; color: #0ea5e9; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 1rem;">
+                        AI Pair Programmer</p>
+                    <p style="font-size: 0.875rem; color: var(--text-muted); line-height: 1.6;">Advanced reasoning
+                        engine by Google DeepMind for complex logic and UI orchestration.</p>
                 </div>
-                <div class="summary-card card-orange">
-                    <span class="val" id="c-hi" style="color: var(--accent-yellow)">0</span>
-                    <span class="label">High</span>
-                </div>
-                <div class="summary-card card-blue">
-                    <span class="val" id="c-med" style="color: var(--accent-cyan)">0</span>
-                    <span class="label">Medium</span>
+
+                <!-- Claude -->
+                <div
+                    style="background: white; border: 1px solid var(--border-light); border-radius: 1.5rem; padding: 2.5rem; text-align: center;">
+                    <div
+                        style="width: 100px; height: 100px; background: #fff7ed; border: 1px solid #ffedd5; border-radius: 50%; margin: 0 auto 1.5rem; display: flex; align-items: center; justify-content: center;">
+                        <i class="ri-magic-line" style="font-size: 2.5rem; color: #f97316;"></i>
+                    </div>
+                    <h3 style="font-weight: 800; font-size: 1.25rem; margin-bottom: 0.5rem; letter-spacing: -0.02em;">
+                        Claude</h3>
+                    <p
+                        style="font-size: 0.875rem; font-weight: 700; color: #f97316; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 1rem;">
+                        AI Pair Programmer</p>
+                    <p style="font-size: 0.875rem; color: var(--text-muted); line-height: 1.6;">Expert architectural
+                        collaborator by Anthropic for security patterns and documentation.</p>
                 </div>
             </div>
+        </div>        <!-- Documentation View -->
+        <div id="view-documentation" class="view">
+            <h2 style="font-size: 2.5rem; font-weight: 800; letter-spacing: -0.04em; margin-bottom: 1rem;">
+                Documentation<span class="dot" style="color: var(--brand-accent);">.</span></h2>
+            <p style="color: var(--text-muted); margin-bottom: 4rem;">Comprehensive technical specifications, CLI
+                references, and SPBE compliance mapping.</p>
 
-            <!-- Live Filter Box -->
-            <div style="margin-bottom: 2rem; position: relative;">
-                <input type="text" id="filter-input" placeholder="Filter findings by file or recommendation..."
-                    style="width: 100%; padding: 1rem 1.5rem; border: 1px solid var(--border-light); border-radius: 0.75rem; font-family: inherit; font-size: 0.875rem; outline: none; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05); transition: border-color 0.2s;">
-                <i class="ri-search-2-line"
-                    style="position: absolute; right: 1.5rem; top: 50%; transform: translateY(-50%); color: var(--text-muted);"></i>
+            <div style="display: grid; grid-template-columns: 280px 1fr; gap: 4rem;">
+                <!-- Doc Nav -->
+                <aside style="position: sticky; top: 120px; align-self: start;">
+                    <div style="display: flex; flex-direction: column; gap: 0.25rem;">
+                        <a href="#doc-overview"
+                            style="text-decoration: none; font-size: 0.875rem; font-weight: 700; color: var(--text-main); display: flex; align-items: center; gap: 0.75rem; padding: 0.75rem 1rem; background: #f8fafc; border-radius: 0.75rem;">
+                            <i class="ri-book-read-line"></i> Overview
+                        </a>
+                        <a href="#doc-scanners"
+                            style="text-decoration: none; font-size: 0.875rem; font-weight: 600; color: var(--text-muted); display: flex; align-items: center; gap: 0.75rem; padding: 0.75rem 1rem;">
+                            <i class="ri-shield-check-line"></i> Scanner Registry
+                        </a>
+                        <a href="#doc-spbe"
+                            style="text-decoration: none; font-size: 0.875rem; font-weight: 600; color: var(--text-muted); display: flex; align-items: center; gap: 0.75rem; padding: 0.75rem 1rem;">
+                            <i class="ri-government-line"></i> SPBE Standards
+                        </a>
+                        <a href="#doc-cli"
+                            style="text-decoration: none; font-size: 0.875rem; font-weight: 600; color: var(--text-muted); display: flex; align-items: center; gap: 0.75rem; padding: 0.75rem 1rem;">
+                            <i class="ri-terminal-box-line"></i> CLI Commands
+                        </a>
+                        <a href="#doc-config"
+                            style="text-decoration: none; font-size: 0.875rem; font-weight: 600; color: var(--text-muted); display: flex; align-items: center; gap: 0.75rem; padding: 0.75rem 1rem;">
+                            <i class="ri-settings-4-line"></i> Customization
+                        </a>
+                        <a href="#doc-cicd"
+                            style="text-decoration: none; font-size: 0.875rem; font-weight: 600; color: var(--text-muted); display: flex; align-items: center; gap: 0.75rem; padding: 0.75rem 1rem;">
+                            <i class="ri-github-line"></i> CI/CD Pipeline
+                        </a>
+                    </div>
+                </aside>
+
+                <!-- Doc Content -->
+                <main style="max-width: 720px;">
+                    <!-- Overview -->
+                    <section id="doc-overview" style="margin-bottom: 6rem;">
+                        <h3
+                            style="font-size: 1.75rem; font-weight: 800; margin-bottom: 1.5rem; letter-spacing: -0.04em;">
+                            Platform Overview</h3>
+                        <p style="color: var(--text-muted); margin-bottom: 2rem; line-height: 1.8;">
+                            Lurah is a cross-platform static code analysis tool written in Go, specifically engineered
+                            for high-security Laravel ecosystems. It streamlines the audit process by mapping code
+                            vulnerabilities directly to <strong>Indonesian SPBE Standards</strong>.
+                        </p>
+                        <div
+                            style="background: white; border: 1px solid var(--border-light); border-radius: 1.5rem; padding: 2rem;">
+                            <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 2rem;">
+                                <div>
+                                    <h5
+                                        style="font-size: 0.7rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.1em; color: var(--brand-accent); margin-bottom: 0.5rem;">
+                                        Total Engine Count</h5>
+                                    <p style="font-size: 1.5rem; font-weight: 800;">13 Scanners</p>
+                                </div>
+                                <div>
+                                    <h5
+                                        style="font-size: 0.7rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.1em; color: var(--brand-accent); margin-bottom: 0.5rem;">
+                                        Target Standard</h5>
+                                    <p style="font-size: 1.5rem; font-weight: 800;">SPBE 1.0+</p>
+                                </div>
+                            </div>
+                        </div>
+                    </section>
+
+                    <!-- Scanners -->
+                    <section id="doc-scanners" style="margin-bottom: 6rem;">
+                        <h3
+                            style="font-size: 1.75rem; font-weight: 800; margin-bottom: 1.5rem; letter-spacing: -0.04em;">
+                            Scanner Registry</h3>
+                        <div style="overflow-x: auto;">
+                            <table style="width: 100%; border-collapse: collapse; text-align: left; font-size: 0.8rem;">
+                                <thead>
+                                    <tr style="border-bottom: 1px solid var(--border-light); color: var(--text-muted);">
+                                        <th style="padding: 1rem 0.5rem; font-weight: 800;">ID</th>
+                                        <th style="padding: 1rem 0.5rem; font-weight: 800;">SCANNER</th>
+                                        <th style="padding: 1rem 0.5rem; font-weight: 800;">TARGET VULNERABILITY</th>
+                                        <th style="padding: 1rem 0.5rem; font-weight: 800;">SEVERITY</th>
+                                    </tr>
+                                </thead>
+                                <tbody style="color: var(--text-main); font-weight: 500;">
+                                    <tr style="border-bottom: 1px solid var(--border-light);">
+                                        <td style="padding: 1rem 0.5rem; font-weight: 700;">#1</td>
+                                        <td style="padding: 1rem 0.5rem; font-weight: 700;">Secret Audit</td>
+                                        <td style="padding: 1rem 0.5rem; color: var(--text-muted);">APP_DEBUG=true in
+                                            prod, empty APP_KEY</td>
+                                        <td style="padding: 1rem 0.5rem; color: var(--accent-red); font-weight: 800;">
+                                            CRITICAL</td>
+                                    </tr>
+                                    <tr style="border-bottom: 1px solid var(--border-light);">
+                                        <td style="padding: 1rem 0.5rem; font-weight: 700;">#2</td>
+                                        <td style="padding: 1rem 0.5rem; font-weight: 700;">SQL Injection</td>
+                                        <td style="padding: 1rem 0.5rem; color: var(--text-muted);">DB::raw(),
+                                            whereRaw() interpolation</td>
+                                        <td style="padding: 1rem 0.5rem; color: var(--accent-red); font-weight: 800;">
+                                            CRITICAL</td>
+                                    </tr>
+                                    <tr style="border-bottom: 1px solid var(--border-light);">
+                                        <td style="padding: 1rem 0.5rem; font-weight: 700;">#3</td>
+                                        <td style="padding: 1rem 0.5rem; font-weight: 700;">PII Data</td>
+                                        <td style="padding: 1rem 0.5rem; color: var(--text-muted);">NIK, NIP, Phone,
+                                            Email in Controllers</td>
+                                        <td
+                                            style="padding: 1rem 0.5rem; color: var(--accent-yellow); font-weight: 800;">
+                                            HIGH</td>
+                                    </tr>
+                                    <tr style="border-bottom: 1px solid var(--border-light);">
+                                        <td style="padding: 1rem 0.5rem; font-weight: 700;">#4</td>
+                                        <td style="padding: 1rem 0.5rem; font-weight: 700;">XSS Protection</td>
+                                        <td style="padding: 1rem 0.5rem; color: var(--text-muted);">Unescaped Blade {!!
+                                            output !!}</td>
+                                        <td
+                                            style="padding: 1rem 0.5rem; color: var(--accent-yellow); font-weight: 800;">
+                                            HIGH</td>
+                                    </tr>
+                                    <tr style="border-bottom: 1px solid var(--border-light);">
+                                        <td style="padding: 1rem 0.5rem; font-weight: 700;">#5</td>
+                                        <td style="padding: 1rem 0.5rem; font-weight: 700;">CSRF Logic</td>
+                                        <td style="padding: 1rem 0.5rem; color: var(--text-muted);">Wildcard entries in
+                                            VerifyCsrfToken</td>
+                                        <td
+                                            style="padding: 1rem 0.5rem; color: var(--accent-yellow); font-weight: 800;">
+                                            HIGH</td>
+                                    </tr>
+                                    <tr style="border-bottom: 1px solid var(--border-light);">
+                                        <td style="padding: 1rem 0.5rem; font-weight: 700;">#11</td>
+                                        <td style="padding: 1rem 0.5rem; font-weight: 700;">CVE Lookup</td>
+                                        <td style="padding: 1rem 0.5rem; color: var(--text-muted);">Live CVEs via
+                                            Packagist API</td>
+                                        <td style="padding: 1rem 0.5rem; color: var(--accent-red); font-weight: 800;">
+                                            CRITICAL</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </section>
+
+                    <!-- SPBE -->
+                    <section id="doc-spbe" style="margin-bottom: 6rem;">
+                        <h3
+                            style="font-size: 1.75rem; font-weight: 800; margin-bottom: 1.5rem; letter-spacing: -0.04em;">
+                            SPBE Compliance</h3>
+                        <div
+                            style="background: #f8fafc; border: 1px solid var(--border-light); border-radius: 1.5rem; padding: 2.5rem;">
+                            <div style="display: grid; gap: 1.5rem;">
+                                <div style="display: flex; gap: 1.5rem;">
+                                    <div
+                                        style="font-family: 'JetBrains Mono'; font-weight: 800; color: var(--brand-accent);">
+                                        PD.01</div>
+                                    <div>
+                                        <h5 style="font-weight: 800; margin-bottom: 0.25rem;">Perlindungan Data Pribadi
+                                        </h5>
+                                        <p style="font-size: 0.8rem; color: var(--text-muted);">Automated PII detection
+                                            for NIK, NIP, and other Indonesian identity patterns.</p>
+                                    </div>
+                                </div>
+                                <div style="display: flex; gap: 1.5rem;">
+                                    <div
+                                        style="font-family: 'JetBrains Mono'; font-weight: 800; color: var(--brand-accent);">
+                                        SI.04</div>
+                                    <div>
+                                        <h5 style="font-weight: 800; margin-bottom: 0.25rem;">Keamanan Injeksi Data</h5>
+                                        <p style="font-size: 0.8rem; color: var(--text-muted);">Static analysis for
+                                            SQLi, XSS, and Mass Assignment vulnerabilities.</p>
+                                    </div>
+                                </div>
+                                <div style="display: flex; gap: 1.5rem;">
+                                    <div
+                                        style="font-family: 'JetBrains Mono'; font-weight: 800; color: var(--brand-accent);">
+                                        SI.01</div>
+                                    <div>
+                                        <h5 style="font-weight: 800; margin-bottom: 0.25rem;">Otentikasi Pengguna</h5>
+                                        <p style="font-size: 0.8rem; color: var(--text-muted);">Login flow and session
+                                            security configuration audits.</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </section>
+
+                    <!-- CLI Commands -->
+                    <section id="doc-cli" style="margin-bottom: 6rem;">
+                        <h3
+                            style="font-size: 1.75rem; font-weight: 800; margin-bottom: 1.5rem; letter-spacing: -0.04em;">
+                            CLI Command Reference</h3>
+                        <div
+                            style="background: var(--brand-primary); color: #cbd5e1; border-radius: 1.5rem; padding: 2rem; font-family: 'JetBrains Mono'; font-size: 0.8rem; line-height: 1.6;">
+                            <p style="color: #64748b; margin-bottom: 1rem;"># Audit the current directory</p>
+                            <p style="margin-bottom: 1.5rem;"><span style="color: #fff;">lurah</span> scan</p>
+
+                            <p style="color: #64748b; margin-bottom: 1rem;"># Launch the web dashboard on port 9999</p>
+                            <p style="margin-bottom: 1.5rem;"><span style="color: #fff;">lurah</span> web --port 9999
+                            </p>
+
+                            <p style="color: #64748b; margin-bottom: 1rem;"># Watch for file changes and re-scan</p>
+                            <p><span style="color: #fff;">lurah</span> watch --path ./app</p>
+                        </div>
+                    </section>
+
+                    <!-- Customization -->
+                    <section id="doc-config" style="margin-bottom: 6rem;">
+                        <h3
+                            style="font-size: 1.75rem; font-weight: 800; margin-bottom: 1.5rem; letter-spacing: -0.04em;">
+                            Customization</h3>
+                        <p style="color: var(--text-muted); margin-bottom: 2rem;">Define custom security rules in your
+                            <code>.lurah.yaml</code> file to target proprietary patterns.
+                        </p>
+                        <div
+                            style="background: white; border: 1px solid var(--border-light); border-radius: 1.5rem; padding: 2rem;">
+                            <pre
+                                style="font-family: 'JetBrains Mono'; font-size: 0.75rem; color: var(--text-main); overflow-x: auto;">
+custom_rules:
+  - name: "no-dd"
+    pattern: "\\bdd\\("
+    severity: "HIGH"
+    message: "Debug function found in production code."</pre>
+                        </div>
+                    </section>
+
+                    <!-- CI/CD -->
+                    <section id="doc-cicd" style="margin-bottom: 6rem;">
+                        <h3
+                            style="font-size: 1.75rem; font-weight: 800; margin-bottom: 1.5rem; letter-spacing: -0.04em;">
+                            CI/CD Pipeline</h3>
+                        <p style="color: var(--text-muted); margin-bottom: 2rem;">Automate security gatekeeping with
+                            GitHub Actions and SARIF reporting.</p>
+                        <div
+                            style="background: white; border: 1px solid var(--border-light); border-radius: 1.5rem; padding: 2rem;">
+                            <div style="display: flex; align-items: center; gap: 1rem;">
+                                <div
+                                    style="width: 48px; height: 48px; background: #000; border-radius: 12px; display: flex; align-items: center; justify-content: center; color: white;">
+                                    <i class="ri-github-fill" style="font-size: 1.5rem;"></i>
+                                </div>
+                                <div>
+                                    <h5 style="font-weight: 800;">Lurah Action V1.0</h5>
+                                    <p style="font-size: 0.75rem; color: var(--text-muted);">Standard GitHub Action for
+                                        Laravel security gatekeeping.</p>
+                                </div>
+                            </div>
+                        </div>
+                    </section>
+                </main>
             </div>
+        </div>
+    </div>
 
-            <div id="findings-list">
-                <!-- findings injected here -->
-            </div>
-
-            <!-- Pagination Controls -->
-            <div id="pagination-controls"
-                style="display: none; justify-content: center; align-items: center; gap: 2rem; margin-top: 3rem; padding-top: 2rem; border-top: 1px solid var(--border-light);">
-                <button id="prev-page"
-                    style="background: white; color: var(--text-main); border: 1px solid var(--border-light); padding: 0.5rem 1.5rem; border-radius: 999px; font-size: 0.75rem; font-weight: 700;">
-                    <i class="ri-arrow-left-s-line"></i> Previous
+    <!-- Detail Modal -->
+    <div id="detail-modal"
+        style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(15, 23, 42, 0.6); backdrop-filter: blur(8px); display: none; z-index: 1000; align-items: center; justify-content: center; padding: 2rem;">
+        <div style="background: white; width: 100%; max-width: 900px; border-radius: 1.5rem; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25); overflow: hidden; display: flex; flex-direction: column; max-height: 90vh;">
+            <div style="padding: 1.5rem 2rem; border-bottom: 1px solid var(--border-light); display: flex; justify-content: space-between; align-items: center; background: #f8fafc;">
+                <div>
+                    <h3 id="modal-title" style="font-size: 1.125rem; font-weight: 800; letter-spacing: -0.02em;">Finding Insight</h3>
+                    <p id="modal-subtitle" style="font-family: 'JetBrains Mono'; font-size: 0.75rem; color: var(--text-muted); margin-top: 0.25rem;"></p>
+                </div>
+                <button onclick="closeModal()" style="background: white; border: 1px solid var(--border-light); width: 40px; height: 40px; border-radius: 10px; display: flex; align-items: center; justify-content: center; cursor: pointer; color: var(--text-muted); transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1); box-shadow: 0 2px 5px rgba(0,0,0,0.05);">
+                    <i class="ri-close-line" style="font-size: 1.5rem;"></i>
                 </button>
-                <span id="page-info"
-                    style="font-size: 0.75rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.1em;">Page
-                    1 of 1</span>
-                <button id="next-page"
-                    style="background: white; color: var(--text-main); border: 1px solid var(--border-light); padding: 0.5rem 1.5rem; border-radius: 999px; font-size: 0.75rem; font-weight: 700;">
-                    Next <i class="ri-arrow-right-s-line"></i>
-                </button>
             </div>
-        </section>
-
-        <div id="empty-state" style="text-align: center; color: var(--text-muted); padding: 40px; display: none;">
-            No findings detected. Your project is clean.
+            <div id="modal-body" style="padding: 2rem; overflow-y: auto; flex: 1; background: #ffffff;">
+                <div id="code-snippet-container" style="background: #fdfdfd; border: 1px solid var(--border-light); border-radius: 0.75rem; overflow: hidden; font-family: 'JetBrains Mono', monospace; font-size: 0.875rem; line-height: 1.6; position: relative;">
+                    <!-- code injected here -->
+                </div>
+            </div>
         </div>
     </div>
 
@@ -484,6 +841,21 @@
         };
 
         const severityOrder = { 'CRITICAL': 0, 'HIGH': 1, 'MEDIUM': 2 };
+
+        // Navigation Logic
+        function showView(viewId) {
+            // Hide all views
+            document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+            // Remove active from links
+            document.querySelectorAll('.nav-links a').forEach(a => a.classList.remove('active'));
+
+            // Show requested view
+            document.getElementById(`view-${viewId}`).classList.add('active');
+            // Active link
+            document.getElementById(`link-${viewId}`).classList.add('active');
+
+            window.scrollTo(0, 0);
+        }
 
         // Folder Picker Logic
         const openFolderPicker = async () => {
@@ -584,13 +956,16 @@
             indicators.med.innerText = m;
         }
 
-        function render(findings) {
+        function render() {
             findingsList.innerHTML = '';
             resultsArea.style.display = 'block';
 
-            if (findings.length === 0) {
-                if (!filterInput.value) resultsArea.style.display = 'none';
-                emptyState.style.display = 'block';
+            if (filteredFindings.length === 0) {
+                if (filterInput.value) {
+                    emptyState.style.display = 'block';
+                } else {
+                    resultsArea.style.display = 'none';
+                }
                 paginationControls.style.display = 'none';
                 return;
             }
@@ -598,7 +973,7 @@
             emptyState.style.display = 'none';
 
             // Pagination logic
-            const totalPages = Math.ceil(findings.length / itemsPerPage);
+            const totalPages = Math.ceil(filteredFindings.length / itemsPerPage);
             if (totalPages > 1) {
                 paginationControls.style.display = 'flex';
                 pageInfo.innerText = `Page ${currentPage} of ${totalPages}`;
@@ -611,28 +986,109 @@
             }
 
             const start = (currentPage - 1) * itemsPerPage;
-            const paginatedItems = findings.slice(start, start + itemsPerPage);
+            const paginated = filteredFindings.slice(start, start + itemsPerPage);
 
-            paginatedItems.forEach(f => {
+            paginated.forEach(f => {
                 const item = document.createElement('div');
                 item.className = 'finding-item';
+                item.style.cssText = `
+                    background: white;
+                    border: 1px solid var(--border-light);
+                    border-radius: 1.5rem;
+                    padding: 2rem;
+                    display: grid;
+                    grid-template-columns: auto 1fr auto;
+                    gap: 2rem;
+                    align-items: center;
+                    cursor: pointer;
+                    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+                `;
+                
+                item.onmouseenter = () => {
+                    item.style.transform = 'translateY(-2px) scale(1.005)';
+                    item.style.boxShadow = '0 10px 30px -10px rgba(0,0,0,0.05)';
+                };
+                item.onmouseleave = () => {
+                    item.style.transform = 'none';
+                    item.style.boxShadow = 'none';
+                };
+                
+                item.onclick = () => showDetail(f);
 
-                let bClass = 'badge-med';
-                if (f.severity === 'CRITICAL') bClass = 'badge-crit';
-                if (f.severity === 'HIGH') bClass = 'badge-hi';
+                const severityColor = f.severity === 'CRITICAL' ? 'var(--accent-red)' :
+                    f.severity === 'HIGH' ? 'var(--accent-yellow)' : 'var(--brand-accent)';
 
                 item.innerHTML = `
-                    <div class="badge ${bClass}">${f.severity}</div>
-                    <div class="f-main">
-                        <span class="f-title">${f.recommendation}</span>
-                        <span class="f-file">${f.file}:${f.line}</span>
+                    <div style="background: ${severityColor}10; color: ${severityColor}; padding: 0.5rem 1rem; border-radius: 0.5rem; font-size: 0.75rem; font-weight: 800; border: 1px solid ${severityColor}30;">
+                        ${f.severity}
                     </div>
-                    <div style="text-align: right;">
-                        <i class="ri-arrow-right-s-line" style="color: var(--text-muted)"></i>
+                    <div>
+                        <h4 style="font-weight: 700; font-size: 1.125rem; margin-bottom: 0.5rem; color: var(--text-main); line-height: 1.4;">${f.recommendation}</h4>
+                        <p style="font-family: 'JetBrains Mono'; color: var(--text-muted); font-size: 0.75rem;">${f.file}:${f.line}</p>
                     </div>
+                    <i class="ri-arrow-right-s-line" style="color: var(--text-muted); font-size: 1.25rem;"></i>
                 `;
                 findingsList.appendChild(item);
             });
+        }
+
+        async function showDetail(finding) {
+            const modal = document.getElementById('detail-modal');
+            const title = document.getElementById('modal-title');
+            const subtitle = document.getElementById('modal-subtitle');
+            const container = document.getElementById('code-snippet-container');
+
+            title.innerText = finding.recommendation;
+            subtitle.innerText = `${finding.file}:${finding.line}`;
+            container.innerHTML = '<div style="padding: 2rem; text-align: center; color: var(--text-muted);">Fetching code snippet...</div>';
+            modal.style.display = 'flex';
+
+            try {
+                const resp = await fetch(`/api/file-content?path=${encodeURIComponent(finding.file)}&line=${finding.line}`);
+                const data = await resp.json();
+
+                if (data.content && data.content.length > 0) {
+                    container.innerHTML = '';
+                    data.content.forEach((line, idx) => {
+                        const lineNum = data.start + idx;
+                        const isTarget = lineNum === finding.line;
+                        
+                        const lineDiv = document.createElement('div');
+                        lineDiv.style.cssText = `
+                            display: flex;
+                            align-items: center;
+                            background: ${isTarget ? '#fffbeb' : 'transparent'};
+                            min-height: 24px;
+                        `;
+                        
+                        lineDiv.innerHTML = `
+                            <div style="width: 60px; min-width: 60px; text-align: right; padding-right: 1.25rem; color: #cbd5e1; user-select: none; border-right: 1px solid #f1f5f9; background: #fdfdfd; font-size: 0.75rem;">${lineNum}</div>
+                            <div style="flex: 1; padding-left: 1.25rem; white-space: pre; color: ${isTarget ? '#1e293b' : '#64748b'}; font-weight: ${isTarget ? '600' : '400'}; word-break: break-all; overflow-wrap: anywhere;">${line || ' '}</div>
+                        `;
+                        container.appendChild(lineDiv);
+                        
+                        if (isTarget) {
+                            setTimeout(() => lineDiv.scrollIntoView({ block: 'center', behavior: 'smooth' }), 100);
+                        }
+                    });
+                } else {
+                    container.innerHTML = '<div style="padding: 2rem; text-align: center; color: var(--accent-red);">Could not retrieve code snippet.</div>';
+                }
+            } catch (err) {
+                container.innerHTML = '<div style="padding: 2rem; text-align: center; color: var(--accent-red);">Error loading file content.</div>';
+            }
+        }
+
+        function closeModal() {
+            document.getElementById('detail-modal').style.display = 'none';
+        }
+
+        // Close on outside click
+        window.onclick = function(event) {
+            const modal = document.getElementById('detail-modal');
+            if (event.target == modal) {
+                closeModal();
+            }
         }
     </script>
 </body>

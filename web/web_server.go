@@ -1,17 +1,22 @@
 package web
 
 import (
-	_ "embed"
+	"bufio"
+	"embed"
 	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
+	"os"
 	"os/exec"
 	"runtime"
+	"strconv"
 	"strings"
 
 	"github.com/rheatkhs/lurah/scanner"
 )
+
+var _ = embed.FS{}
 
 //go:embed index.html
 var indexHTML []byte
@@ -43,6 +48,7 @@ func (s *Server) Start() error {
 	// API Endpoints
 	mux.HandleFunc("/api/scan", s.handleScan)
 	mux.HandleFunc("/api/select-folder", s.handleSelectFolder)
+	mux.HandleFunc("/api/file-content", s.handleFileContent)
 
 	addr := fmt.Sprintf("localhost:%d", s.Port)
 	fmt.Printf("  [+] Dashboard starting at http://%s\n", addr)
@@ -127,6 +133,64 @@ func (s *Server) handleSelectFolder(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(map[string]string{"path": path})
+}
+
+// FileContentResponse represents the snippet data.
+type FileContentResponse struct {
+	Content []string `json:"content"`
+	Start   int      `json:"start"`
+}
+
+func (s *Server) handleFileContent(w http.ResponseWriter, r *http.Request) {
+	filePath := r.URL.Query().Get("path")
+	lineStr := r.URL.Query().Get("line")
+
+	if filePath == "" || lineStr == "" {
+		http.Error(w, "Missing path or line", http.StatusBadRequest)
+		return
+	}
+
+	line, err := strconv.Atoi(lineStr)
+	if err != nil {
+		http.Error(w, "Invalid line number", http.StatusBadRequest)
+		return
+	}
+
+	file, err := os.Open(filePath)
+	if err != nil {
+		http.Error(w, "Could not open file", http.StatusNotFound)
+		return
+	}
+	defer file.Close()
+
+	scanner := bufio.NewScanner(file)
+	lines := []string{}
+	currentLine := 0
+	
+	// We want ~5 lines before and ~5 lines after
+	startLine := line - 5
+	if startLine < 1 {
+		startLine = 1
+	}
+	endLine := line + 5
+
+	for scanner.Scan() {
+		currentLine++
+		if currentLine >= startLine && currentLine <= endLine {
+			lines = append(lines, scanner.Text())
+		}
+		if currentLine > endLine {
+			break
+		}
+	}
+
+	resp := FileContentResponse{
+		Content: lines,
+		Start:   startLine,
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(resp)
 }
 
 // OpenBrowser opens the specified URL in the default browser of the user.
