@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"os/exec"
 	"runtime"
+	"strings"
 
 	"github.com/rheatkhs/lurah/scanner"
 )
@@ -41,6 +42,7 @@ func (s *Server) Start() error {
 
 	// API Endpoints
 	mux.HandleFunc("/api/scan", s.handleScan)
+	mux.HandleFunc("/api/select-folder", s.handleSelectFolder)
 
 	addr := fmt.Sprintf("localhost:%d", s.Port)
 	fmt.Printf("  [+] Dashboard starting at http://%s\n", addr)
@@ -101,6 +103,30 @@ func (s *Server) handleScan(w http.ResponseWriter, r *http.Request) {
 	resp := ScanResponse{Findings: findings}
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(resp)
+}
+
+func (s *Server) handleSelectFolder(w http.ResponseWriter, r *http.Request) {
+	if runtime.GOOS != "windows" {
+		http.Error(w, "Native folder picker only supported on Windows", http.StatusNotImplemented)
+		return
+	}
+
+	// PowerShell command to open folder dialog
+	psCmd := "Add-Type -AssemblyName System.Windows.Forms; $f = New-Object System.Windows.Forms.FolderBrowserDialog; if($f.ShowDialog() -eq 'OK') { $f.SelectedPath }"
+	out, err := exec.Command("powershell", "-NoProfile", "-Command", psCmd).Output()
+	if err != nil {
+		http.Error(w, "Failed to open folder dialog", http.StatusInternalServerError)
+		return
+	}
+
+	path := strings.TrimSpace(string(out))
+	if path == "" {
+		w.WriteHeader(http.StatusNoContent)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]string{"path": path})
 }
 
 // OpenBrowser opens the specified URL in the default browser of the user.
