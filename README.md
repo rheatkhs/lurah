@@ -38,15 +38,37 @@ Lurah is a cross-platform CLI tool written in Go that performs static security a
 ## Features
 
 - **13 built-in security scanners** covering secrets, PII, SQL injection, XSS, CSRF, mass assignment, file uploads, authentication, middleware, dependencies, advisories, config, and environment drift
+- **Interactive Web Dashboard**: Professional BugScribe-inspired UI for deep-dive auditing
+- **Deep Code Inspector**: Jump directly from findings to source code with line highlighting
 - **Live CVE checking** via Packagist Security Advisories API
 - **Multi-line function-scope analysis** for PII detection
 - **Auto-fix mode** to automatically patch simple issues
 - **Watch mode** to re-scan on file changes
 - **Baseline system** to suppress known issues and only report new ones
 - **Custom rule engine** with user-defined regex patterns
-- **4 output formats** — table (colored), JSON, SARIF, and HTML report
-- **Cross-platform** — Windows and Linux via `filepath.Join`
+- **SPBE Compliance Mapping**: Direct alignment with Indonesian government standards
+- **Cross-platform** — Windows and Linux support
 - **CI/CD friendly** — exits with code 1 on critical findings
+
+---
+
+---
+
+## Web Dashboard
+
+Lurah includes a professional, high-performance web dashboard featuring a "BugScribe" inspired aesthetic and deep technical insights.
+
+### 1. Unified Command Center
+![Web Dashboard](web/assets/img/1.web-dashboard.png)
+*A high-fidelity interface for managing project security and SPBE compliance.*
+
+### 2. Intelligent Reporting
+![Scanner Results](web/assets/img/2.scanner-result.png)
+*Live-searchable, severity-sorted results with intelligent pagination.*
+
+### 3. Deep Code Inspector
+![Code Inspector](web/assets/img/3.detail.png)
+*Pinpoint vulnerabilities with surgical precision using the in-dashboard source inspector.*
 
 ---
 
@@ -79,6 +101,9 @@ lurah
 ### Command Line Usage
 
 ```bash
+# Launch the Web Dashboard (Recommended)
+lurah web
+
 # Scan the current directory
 lurah scan
 
