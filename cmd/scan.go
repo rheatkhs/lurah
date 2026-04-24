@@ -63,7 +63,10 @@ var scanCmd = &cobra.Command{
 
 		if isTable {
 			banner()
-			color.New(color.FgWhite).Printf("  Scanning: %s\n", absPath)
+			dim := color.New(color.FgHiBlack)
+			color.New(color.FgWhite, color.Bold).Print("  Target: ")
+			color.New(color.FgHiCyan).Println(absPath)
+			dim.Println("  ─── Scanning ────────────────────────────────────")
 			fmt.Println()
 		}
 
@@ -209,8 +212,10 @@ func printProgress(current, total int, name string) {
 	if outputFormat != "" && outputFormat != "table" {
 		return
 	}
-	color.New(color.FgWhite).Printf("  [%d/%d] ", current, total)
-	color.New(color.FgCyan).Println("Running " + name + "...")
+	dim := color.New(color.FgHiBlack)
+	dim.Printf("  %2d/%d ", current, total)
+	color.New(color.FgHiBlack).Print("→ ")
+	color.New(color.FgWhite).Println(name)
 }
 
 func countEnabled(cfg scanner.LurahConfig) int {

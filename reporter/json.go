@@ -60,7 +60,7 @@ func PrintJSON(findings []scanner.Finding, projectPath string) {
 
 	report := JSONReport{
 		Tool:      "lurah",
-		Version:   "1.1.0",
+		Version:   "1.0.0",
 		Timestamp: time.Now().UTC().Format(time.RFC3339),
 		Project:   projectPath,
 		Summary:   summary,
@@ -168,7 +168,7 @@ func PrintSARIF(findings []scanner.Finding) {
 				Tool: SARIFTool{
 					Driver: SARIFDriver{
 						Name:    "lurah",
-						Version: "1.1.0",
+						Version: "1.0.0",
 					},
 				},
 				Results: results,
