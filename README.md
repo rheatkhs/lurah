@@ -69,7 +69,14 @@ go build -o lurah .         # Linux/macOS
 
 ## Usage
 
-### Quick scan
+### Interactive Menu
+
+```bash
+# Run without arguments to launch the interactive prompt UI
+lurah
+```
+
+### Command Line Usage
 
 ```bash
 # Scan the current directory

@@ -45,7 +45,7 @@ func PrintTable(findings []scanner.Finding) {
 
 	if len(findings) == 0 {
 		fmt.Println()
-		color.New(color.FgGreen, color.Bold).Println("  ✓ No security issues found. Your Laravel project looks clean!")
+		color.New(color.FgGreen, color.Bold).Println("  * No security issues found. Your Laravel project looks clean!")
 		dim.Println("  ─────────────────────────────────────────────────")
 		printFooterCredit()
 		return
@@ -103,7 +103,7 @@ func PrintTable(findings []scanner.Finding) {
 	fmt.Println()
 	color.New(color.FgWhite, color.Bold).Printf("    Total: %d finding(s)", total)
 	if critical > 0 {
-		color.New(color.FgRed).Print("  ← action required")
+		color.New(color.FgRed).Print("  [ action required ]")
 	}
 	fmt.Println()
 

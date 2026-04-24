@@ -214,7 +214,7 @@ func printProgress(current, total int, name string) {
 	}
 	dim := color.New(color.FgHiBlack)
 	dim.Printf("  %2d/%d ", current, total)
-	color.New(color.FgHiBlack).Print("→ ")
+	color.New(color.FgHiBlack).Print(":: ")
 	color.New(color.FgWhite).Println(name)
 }
 

@@ -73,7 +73,7 @@ func PrintHTML(findings []scanner.Finding, projectPath string, outputPath string
     <div class="card high"><div class="number">%d</div><div class="label">High</div></div>
     <div class="card medium"><div class="number">%d</div><div class="label">Medium</div></div>
   </div>
-`, len(findings), critical, high, medium))
+`, time.Now().Format("2006-01-02 15:04"), len(findings), critical, high, medium))
 
 	if len(findings) == 0 {
 		sb.WriteString(`  <div class="success">&#10003; No security issues found.</div>`)
