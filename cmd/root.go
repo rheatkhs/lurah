@@ -66,6 +66,7 @@ func showInteractiveMenu() (string, error) {
 		{Label: "Scan Project", Description: "Run all security scanners on a Laravel project", Icon: "[ > ]"},
 		{Label: "Scan (JSON Output)", Description: "Run scan with JSON output format", Icon: "[ { } ]"},
 		{Label: "Scan (HTML Report)", Description: "Run scan and generate HTML report", Icon: "[ < > ]"},
+		{Label: "Web Dashboard", Description: "Launch graphical browser dashboard (Port 9999)", Icon: "[ WEB ]"},
 		{Label: "Watch Mode", Description: "Watch for file changes and re-scan automatically", Icon: "[ ~ ]"},
 		{Label: "Initialize Config", Description: "Create a .lurah.yaml configuration file", Icon: "[ + ]"},
 		{Label: "Create Baseline", Description: "Save current findings as baseline", Icon: "[ = ]"},
@@ -178,6 +179,9 @@ SQL injection, XSS, mass assignment, insecure auth, and more.
 			}
 			scanCmd.Flags().Set("html", htmlPath)
 			scanCmd.RunE(cmd, args)
+
+		case "Web Dashboard":
+			webCmd.RunE(cmd, args)
 
 		case "Watch Mode":
 			path, err := promptForPath()

@@ -11,8 +11,8 @@ const (
 
 // Finding represents a single security issue discovered during a scan.
 type Finding struct {
-	Severity       Severity
-	File           string
-	Line           int
-	Recommendation string
+	Severity       Severity `json:"severity"`
+	File           string   `json:"file"`
+	Line           int      `json:"line"`
+	Recommendation string   `json:"recommendation"`
 }
