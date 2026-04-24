@@ -1,0 +1,26 @@
+# Binary
+lurah
+lurah.exe
+
+# Go
+*.test
+*.out
+*.prof
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# Lurah config (user-specific)
+.lurah.yaml
+
+# Dependencies (managed by go modules)
+vendor/
