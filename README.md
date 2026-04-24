@@ -4,7 +4,9 @@
 
 > **Note:** Lurah is a static analysis tool intended as a *reference* (acuan), not a replacement for manual security review. Automated scanning cannot catch every vulnerability — always perform a thorough manual audit alongside this tool to ensure full compliance.
 
-```
+Lurah is a cross-platform CLI tool written in Go that performs static security analysis on Laravel projects. It targets compliance with Indonesian government SPBE (*Sistem Pemerintahan Berbasis Elektronik*) standards.
+
+```text
   ██╗     ██╗   ██╗██████╗  █████╗ ██╗  ██╗
   ██║     ██║   ██║██╔══██╗██╔══██╗██║  ██║
   ██║     ██║   ██║██████╔╝███████║███████║
@@ -23,6 +25,8 @@
 - [Scanners](#scanners)
 - [Configuration](#configuration)
 - [Output Formats](#output-formats)
+- [Baseline System](#baseline-system)
+- [Custom Rules](#custom-rules)
 - [CI/CD Integration](#cicd-integration)
 - [Project Structure](#project-structure)
 - [SPBE Standard References](#spbe-standard-references)
@@ -33,13 +37,15 @@
 
 ## Features
 
-- **8 built-in security scanners** covering secrets, PII, SQL injection, CSRF, middleware, dependencies, config, and environment drift
-- **Multi-line function-scope analysis** — PII detection tracks variables across entire function bodies, not just single lines
-- **Auto-fix mode** — automatically patch simple issues like `APP_DEBUG=true`
-- **Watch mode** — re-scan on file changes during development
-- **Multiple output formats** — table (colored), JSON, and SARIF for CI/CD integration
-- **Configurable** — `.lurah.yaml` to enable/disable scanners, set severity thresholds, and exclude paths
-- **Cross-platform** — Windows and Linux compatible via `filepath.Join`
+- **13 built-in security scanners** covering secrets, PII, SQL injection, XSS, CSRF, mass assignment, file uploads, authentication, middleware, dependencies, advisories, config, and environment drift
+- **Live CVE checking** via Packagist Security Advisories API
+- **Multi-line function-scope analysis** for PII detection
+- **Auto-fix mode** to automatically patch simple issues
+- **Watch mode** to re-scan on file changes
+- **Baseline system** to suppress known issues and only report new ones
+- **Custom rule engine** with user-defined regex patterns
+- **4 output formats** — table (colored), JSON, SARIF, and HTML report
+- **Cross-platform** — Windows and Linux via `filepath.Join`
 - **CI/CD friendly** — exits with code 1 on critical findings
 
 ---
@@ -79,103 +85,99 @@ lurah.exe scan --path C:\laragon\www\my-project
 ### Filter by severity
 
 ```bash
-# Only show HIGH and CRITICAL findings
 lurah scan --min-severity HIGH
 ```
 
 ### Auto-fix
 
 ```bash
-# Automatically fix simple issues (e.g., set APP_DEBUG=false)
 lurah scan --fix
 ```
 
 ### Output formats
 
 ```bash
-# JSON output for programmatic consumption
+# JSON output
 lurah scan --format json
 
 # SARIF output for GitHub Code Scanning
 lurah scan --format sarif > results.sarif
+
+# HTML report
+lurah scan --html report.html
+```
+
+### Baseline
+
+```bash
+# Save current findings as baseline (for legacy projects)
+lurah scan --baseline-create
+
+# Only show new findings not in baseline
+lurah scan --baseline
 ```
 
 ### Watch mode
 
 ```bash
-# Re-scan automatically when files change
 lurah watch --path ./
 ```
 
 ### Initialize configuration
 
 ```bash
-# Generate a .lurah.yaml with defaults
 lurah init
 ```
 
-### Example output
+### All flags
 
-```
-  Scanning: C:\laragon\www\my-project
-
-  [1/8] Running Secret Scanner...
-  [2/8] Running PII Scanner...
-  [3/8] Running SQL Injection Scanner...
-  [4/8] Running CSRF Scanner...
-  [5/8] Running Middleware Scanner...
-  [6/8] Running Dependency Scanner...
-  [7/8] Running Config Scanner...
-  [8/8] Running Env Diff Scanner...
-
-  Found 14 issue(s):
-
-  ┌──────────┬──────────────────────────────┬────────────────────────────────────────────────┐
-  │ Severity │ File                         │ Recommendation                                 │
-  ├──────────┼──────────────────────────────┼────────────────────────────────────────────────┤
-  │ CRITICAL │ .env:4                       │ APP_DEBUG is true in a non-local environment.   │
-  │          │                              │ Disable debug mode for production (SPBE-SI.03). │
-  ├──────────┼──────────────────────────────┼────────────────────────────────────────────────┤
-  │ CRITICAL │ .env:3                       │ APP_KEY is empty. Run 'php artisan              │
-  │          │                              │ key:generate' (SPBE-SI.02).                     │
-  ├──────────┼──────────────────────────────┼────────────────────────────────────────────────┤
-  │ HIGH     │ WargaController.php:4        │ PII variable '$nik' found in function that      │
-  │          │                              │ returns JSON. Apply masking (SPBE-PD.01).        │
-  ├──────────┼──────────────────────────────┼────────────────────────────────────────────────┤
-  │ CRITICAL │ Report.php:4                 │ Potential SQL injection: raw query with          │
-  │          │                              │ variable interpolation (SPBE-SI.04).             │
-  └──────────┴──────────────────────────────┴────────────────────────────────────────────────┘
-
-  Summary: 14 findings (3 critical, 7 high, 4 medium)
+```text
+Flags:
+  -f, --format string         Output format: table, json, sarif (default "table")
+      --min-severity string   Minimum severity: MEDIUM, HIGH, CRITICAL
+      --fix                   Auto-fix simple issues
+      --baseline              Only show findings not in baseline
+      --baseline-create       Save current findings as baseline
+      --html string           Generate HTML report to file path
+  -p, --path string           Path to Laravel project root (default ".")
 ```
 
 ---
 
 ## Scanners
 
-| Scanner | What it detects | Severity |
-|---|---|---|
-| **Secret** | `APP_DEBUG=true` in non-local env, empty `APP_KEY` | CRITICAL |
-| **PII** | 30 variable patterns across 4 categories (see below) — elevated if returned in JSON | HIGH / MEDIUM |
-| **SQL Injection** | `DB::raw()`, `whereRaw()`, `selectRaw()` with variable interpolation | CRITICAL |
-| **CSRF** | Wildcard or excessive `$except` entries in `VerifyCsrfToken` | HIGH / MEDIUM |
-| **Middleware** | Sensitive routes (`/admin`, `/payment`, `/api/*`) without `auth` or `throttle` | HIGH / MEDIUM |
-| **Dependency** | Debug packages in production deps, outdated PHP requirements | HIGH / MEDIUM |
-| **Config** | Hardcoded `debug => true`, cleartext `password`/`secret`/`api_key` in config/ | HIGH |
-| **Env Diff** | Keys in `.env.example` missing from `.env`, placeholder values | MEDIUM |
+Lurah includes 13 built-in scanners:
+
+| # | Scanner | What it detects | Severity |
+| --- | --- | --- | --- |
+| 1 | **Secret** | `APP_DEBUG=true` in non-local env, empty `APP_KEY` | CRITICAL |
+| 2 | **PII** | 30 PII variables in Controllers (see below) | HIGH / MEDIUM |
+| 3 | **SQL Injection** | `DB::raw()`, `whereRaw()`, `selectRaw()` with variable interpolation | CRITICAL |
+| 4 | **XSS** | Unescaped Blade output `{!! $var !!}` in templates | HIGH |
+| 5 | **CSRF** | Wildcard or excessive `$except` entries in `VerifyCsrfToken` | HIGH / MEDIUM |
+| 6 | **Mass Assignment** | Eloquent models without `$fillable` or with `$guarded = []` | HIGH |
+| 7 | **File Upload** | `store()`/`move()` without MIME validation, public disk storage | HIGH / MEDIUM |
+| 8 | **Auth** | Insecure hashing (md5/sha1), weak session config, missing cookie flags | CRITICAL / HIGH / MEDIUM |
+| 9 | **Middleware** | Sensitive routes without `auth` or `throttle` middleware | HIGH / MEDIUM |
+| 10 | **Dependency** | Debug packages in production, outdated PHP requirement | HIGH / MEDIUM |
+| 11 | **Advisory** | Live CVE lookup via Packagist Security Advisories API | CRITICAL |
+| 12 | **Config** | Hardcoded `debug => true`, cleartext credentials in config/ | HIGH |
+| 13 | **Env Diff** | Keys in `.env.example` missing from `.env`, placeholder values | MEDIUM |
 
 ### PII Detected Patterns
 
-The PII scanner looks for the following PHP variable names in Controllers:
+The PII scanner detects the following PHP variable names in Controllers:
 
 | Category | Variables |
 | --- | --- |
-| **Indonesian Identity** | `$nik` (NIK), `$nip` (NIP), `$npwp` (NPWP), `$no_ktp`, `$no_kk` (Kartu Keluarga), `$no_sim`, `$no_passport`, `$no_bpjs` |
+| **Indonesian Identity** | `$nik` (NIK), `$nip` (NIP), `$npwp` (NPWP), `$no_ktp`, `$no_kk`, `$no_sim`, `$no_passport`, `$no_bpjs` |
 | **Financial** | `$rekening`, `$no_rekening`, `$no_rek`, `$kartu_kredit`, `$credit_card`, `$card_number` |
 | **Contact / Personal** | `$no_hp`, `$no_telp`, `$phone_number`, `$alamat`, `$email`, `$tanggal_lahir`, `$tempat_lahir`, `$nama_ibu` |
 | **Biometric / Sensitive** | `$sidik_jari`, `$foto_ktp`, `$password`, `$pin` |
 
 If a PII variable is found inside a function that returns a JSON response, the finding is escalated to **HIGH**. Otherwise it is flagged as **MEDIUM**.
+
+---
 
 ## Configuration
 
@@ -199,51 +201,72 @@ scanners:
   dependency: true
   config: true
   env_diff: true
+  xss: true
+  mass_assignment: true
+  file_upload: true
+  auth: true
+  advisory: true
 pii:
   custom_patterns: []
+custom_rules: []
 ```
-
-| Key | Description |
-|---|---|
-| `exclude_paths` | Directories to skip during scanning |
-| `min_severity` | Minimum severity threshold: `MEDIUM`, `HIGH`, or `CRITICAL` |
-| `scanners.*` | Toggle individual scanners on/off |
-| `pii.custom_patterns` | Additional PII variable names to detect |
 
 ---
 
 ## Output Formats
 
 | Format | Flag | Use Case |
-|---|---|---|
+| --- | --- | --- |
 | **Table** | `--format table` (default) | Human-readable terminal output with color-coded severity |
 | **JSON** | `--format json` | Structured output for scripts and dashboards |
-| **SARIF** | `--format sarif` | GitHub Code Scanning, SonarQube, and other SARIF-compatible tools |
+| **SARIF** | `--format sarif` | GitHub Code Scanning, SonarQube, and SARIF-compatible tools |
+| **HTML** | `--html report.html` | Self-contained dark-themed report for stakeholders |
 
-### JSON schema
+---
 
-```json
-{
-  "tool": "lurah",
-  "version": "1.1.0",
-  "timestamp": "2026-04-24T01:55:00Z",
-  "project": "/path/to/project",
-  "summary": {
-    "total": 14,
-    "critical": 3,
-    "high": 7,
-    "medium": 4
-  },
-  "findings": [
-    {
-      "severity": "CRITICAL",
-      "file": ".env",
-      "line": 4,
-      "recommendation": "..."
-    }
-  ]
-}
+## Baseline System
+
+For legacy projects with many existing findings, use the baseline system to focus on new issues:
+
+```bash
+# Step 1: Record current state as baseline
+lurah scan --baseline-create
+
+# Step 2: On subsequent runs, only show new findings
+lurah scan --baseline
 ```
+
+The baseline is stored in `.lurah-baseline.json`. Findings are matched by a hash of severity + filename + recommendation, so line number changes do not cause false positives.
+
+---
+
+## Custom Rules
+
+Define project-specific rules in `.lurah.yaml`:
+
+```yaml
+custom_rules:
+  - name: "no-dd"
+    pattern: "\\bdd\\("
+    target_dir: "app"
+    extensions: "php"
+    severity: "HIGH"
+    message: "Debug function dd() found. Remove before deploying to production."
+
+  - name: "no-env-direct"
+    pattern: "\\benv\\("
+    target_dir: "app"
+    extensions: "php"
+    severity: "MEDIUM"
+    message: "Direct env() call in app code. Use config values instead."
+```
+
+Each rule supports:
+- `pattern` — regex pattern to match
+- `target_dir` — directory to scan (relative to project root)
+- `extensions` — comma-separated file extensions
+- `severity` — CRITICAL, HIGH, or MEDIUM
+- `message` — custom recommendation text
 
 ---
 
@@ -272,7 +295,7 @@ jobs:
 ### Exit codes
 
 | Code | Meaning |
-|---|---|
+| --- | --- |
 | `0` | No critical findings |
 | `1` | One or more CRITICAL findings detected |
 
@@ -280,31 +303,36 @@ jobs:
 
 ## Project Structure
 
-```
+```text
 lurah/
 ├── main.go                        # Entry point
 ├── cmd/
 │   ├── root.go                    # Root command, banner, --path flag
-│   ├── scan.go                    # Scan + watch commands, --format/--fix/--min-severity flags
-│   └── init.go                    # Init command (.lurah.yaml generation)
+│   ├── scan.go                    # Scan + watch commands, all flags
+│   └── init.go                    # Init command (.lurah.yaml)
 ├── scanner/
 │   ├── types.go                   # Finding struct, Severity constants
 │   ├── secret.go                  # .env secret scanner
-│   ├── pii.go                     # PII scanner (multi-line function-scope)
-│   ├── sqli.go                    # SQL injection pattern scanner
+│   ├── pii.go                     # PII scanner (multi-line)
+│   ├── sqli.go                    # SQL injection scanner
+│   ├── xss.go                     # XSS scanner (Blade)
 │   ├── csrf.go                    # CSRF exclusion scanner
+│   ├── mass_assignment.go         # Mass assignment scanner
+│   ├── upload.go                  # File upload scanner
+│   ├── auth.go                    # Auth & session scanner
 │   ├── middleware.go              # Route middleware auditor
-│   ├── dependency.go              # Composer.lock + .env diff scanner
+│   ├── dependency.go              # Composer.lock + env diff
+│   ├── advisory.go                # Packagist CVE lookup
 │   ├── config.go                  # Config file scanner
 │   ├── fix.go                     # Auto-fix logic
-│   ├── lurah_config.go            # .lurah.yaml config loader
-│   ├── secret_test.go             # Unit tests
-│   ├── pii_test.go
-│   ├── sqli_test.go
-│   └── csrf_test.go
+│   ├── baseline.go                # Baseline system
+│   ├── custom_rules.go            # Custom rule engine
+│   ├── lurah_config.go            # .lurah.yaml config
+│   └── *_test.go                  # Unit tests
 └── reporter/
     ├── table.go                   # Colored terminal table
-    └── json.go                    # JSON + SARIF formatters
+    ├── json.go                    # JSON + SARIF formatters
+    └── html.go                    # HTML report generator
 ```
 
 ---
@@ -312,13 +340,16 @@ lurah/
 ## SPBE Standard References
 
 | Code | Standard | Description |
-|---|---|---|
-| SPBE-SI.01 | Otentikasi Pengguna | Authentication required on sensitive endpoints |
-| SPBE-SI.02 | Keamanan Kunci Enkripsi | Encryption key management (APP_KEY) |
-| SPBE-SI.03 | Perlindungan Informasi Sensitif | Debug mode and secret exposure prevention |
-| SPBE-SI.04 | Pencegahan Injeksi | SQL injection and input validation |
+| --- | --- | --- |
+| SPBE-SI.01 | Otentikasi Pengguna | Authentication and session security |
+| SPBE-SI.02 | Keamanan Kunci Enkripsi | Encryption key management |
+| SPBE-SI.03 | Perlindungan Informasi Sensitif | Debug mode and secret exposure |
+| SPBE-SI.04 | Pencegahan Injeksi | SQL injection prevention |
 | SPBE-SI.05 | Perlindungan CSRF | Cross-site request forgery protection |
-| SPBE-PD.01 | Perlindungan Data Pribadi | Personal data (PII) masking and protection |
+| SPBE-SI.06 | Pencegahan XSS | Cross-site scripting prevention |
+| SPBE-SI.07 | Perlindungan Mass Assignment | Mass assignment protection |
+| SPBE-SI.08 | Keamanan Unggah Berkas | File upload security |
+| SPBE-PD.01 | Perlindungan Data Pribadi | Personal data masking and protection |
 
 ---
 
@@ -332,7 +363,7 @@ lurah/
 
 ### Adding a scanner
 
-1. Create `scanner/your_scanner.go` implementing a function `ScanYour(projectPath string) []Finding`
+1. Create `scanner/your_scanner.go` with `func ScanYour(projectPath string) []Finding`
 2. Add a toggle in `LurahConfig.Scanners`
 3. Wire it into `cmd/scan.go`
 4. Write tests in `scanner/your_scanner_test.go`

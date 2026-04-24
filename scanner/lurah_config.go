@@ -13,18 +13,24 @@ type LurahConfig struct {
 	ExcludePaths []string `yaml:"exclude_paths"`
 	MinSeverity  string   `yaml:"min_severity"`
 	Scanners     struct {
-		Secret     bool `yaml:"secret"`
-		PII        bool `yaml:"pii"`
-		SQLi       bool `yaml:"sqli"`
-		CSRF       bool `yaml:"csrf"`
-		Middleware bool `yaml:"middleware"`
-		Dependency bool `yaml:"dependency"`
-		Config     bool `yaml:"config"`
-		EnvDiff    bool `yaml:"env_diff"`
+		Secret         bool `yaml:"secret"`
+		PII            bool `yaml:"pii"`
+		SQLi           bool `yaml:"sqli"`
+		CSRF           bool `yaml:"csrf"`
+		Middleware     bool `yaml:"middleware"`
+		Dependency     bool `yaml:"dependency"`
+		Config         bool `yaml:"config"`
+		EnvDiff        bool `yaml:"env_diff"`
+		XSS            bool `yaml:"xss"`
+		MassAssignment bool `yaml:"mass_assignment"`
+		FileUpload     bool `yaml:"file_upload"`
+		Auth           bool `yaml:"auth"`
+		Advisory       bool `yaml:"advisory"`
 	} `yaml:"scanners"`
 	PII struct {
 		CustomPatterns []string `yaml:"custom_patterns"`
 	} `yaml:"pii"`
+	CustomRules []CustomRule `yaml:"custom_rules"`
 }
 
 // DefaultConfig returns the default configuration.
@@ -42,6 +48,11 @@ func DefaultConfig() LurahConfig {
 	cfg.Scanners.Dependency = true
 	cfg.Scanners.Config = true
 	cfg.Scanners.EnvDiff = true
+	cfg.Scanners.XSS = true
+	cfg.Scanners.MassAssignment = true
+	cfg.Scanners.FileUpload = true
+	cfg.Scanners.Auth = true
+	cfg.Scanners.Advisory = true
 	return cfg
 }
 
