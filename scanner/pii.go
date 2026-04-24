@@ -10,7 +10,41 @@ import (
 )
 
 // piiPatterns are PII variable names that must be masked before API output.
-var piiPatterns = []string{"nik", "npwp", "rekening"}
+var piiPatterns = []string{
+	// Indonesian identity
+	"nik",          // Nomor Induk Kependudukan
+	"nip",          // Nomor Induk Pegawai
+	"npwp",         // Nomor Pokok Wajib Pajak
+	"no_ktp",       // Nomor KTP
+	"no_kk",        // Nomor Kartu Keluarga
+	"no_sim",       // Nomor SIM
+	"no_passport",  // Nomor Paspor
+	"no_bpjs",      // Nomor BPJS
+
+	// Financial
+	"rekening",     // Nomor Rekening Bank
+	"no_rekening",  // Nomor Rekening (alt)
+	"no_rek",       // Nomor Rekening (short)
+	"kartu_kredit", // Nomor Kartu Kredit
+	"credit_card",  // Credit card number
+	"card_number",  // Card number
+
+	// Contact / personal
+	"no_hp",        // Nomor Handphone
+	"no_telp",      // Nomor Telepon
+	"phone_number", // Phone number
+	"alamat",       // Alamat (address)
+	"email",        // Email address
+	"tanggal_lahir", // Tanggal Lahir (date of birth)
+	"tempat_lahir", // Tempat Lahir (place of birth)
+	"nama_ibu",     // Nama Ibu Kandung (mother's maiden name)
+
+	// Biometric / sensitive
+	"sidik_jari",   // Sidik Jari (fingerprint)
+	"foto_ktp",     // Foto KTP
+	"password",     // Password
+	"pin",          // PIN
+}
 
 // jsonResponsePattern matches common Laravel JSON response patterns.
 var jsonResponsePattern = regexp.MustCompile(`(?i)(response\(\)\s*->\s*json|return\s+.*json|->toArray|Resource::collection|JsonResponse)`)

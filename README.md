@@ -2,7 +2,7 @@
 
 **Laravel Security Auditor for SPBE Compliance**
 
-Lurah is a cross-platform CLI tool written in Go that performs static security analysis on Laravel projects. It targets compliance with Indonesian government SPBE (*Sistem Pemerintahan Berbasis Elektronik*) standards, identifying misconfigurations, PII exposure, SQL injection risks, and more.
+> **Note:** Lurah is a static analysis tool intended as a *reference* (acuan), not a replacement for manual security review. Automated scanning cannot catch every vulnerability — always perform a thorough manual audit alongside this tool to ensure full compliance.
 
 ```
   ██╗     ██╗   ██╗██████╗  █████╗ ██╗  ██╗
@@ -156,7 +156,7 @@ lurah init
 | Scanner | What it detects | Severity |
 |---|---|---|
 | **Secret** | `APP_DEBUG=true` in non-local env, empty `APP_KEY` | CRITICAL |
-| **PII** | `$nik`, `$npwp`, `$rekening` in Controllers — elevated if returned in JSON | HIGH / MEDIUM |
+| **PII** | 30 variable patterns across 4 categories (see below) — elevated if returned in JSON | HIGH / MEDIUM |
 | **SQL Injection** | `DB::raw()`, `whereRaw()`, `selectRaw()` with variable interpolation | CRITICAL |
 | **CSRF** | Wildcard or excessive `$except` entries in `VerifyCsrfToken` | HIGH / MEDIUM |
 | **Middleware** | Sensitive routes (`/admin`, `/payment`, `/api/*`) without `auth` or `throttle` | HIGH / MEDIUM |
@@ -164,7 +164,18 @@ lurah init
 | **Config** | Hardcoded `debug => true`, cleartext `password`/`secret`/`api_key` in config/ | HIGH |
 | **Env Diff** | Keys in `.env.example` missing from `.env`, placeholder values | MEDIUM |
 
----
+### PII Detected Patterns
+
+The PII scanner looks for the following PHP variable names in Controllers:
+
+| Category | Variables |
+| --- | --- |
+| **Indonesian Identity** | `$nik` (NIK), `$nip` (NIP), `$npwp` (NPWP), `$no_ktp`, `$no_kk` (Kartu Keluarga), `$no_sim`, `$no_passport`, `$no_bpjs` |
+| **Financial** | `$rekening`, `$no_rekening`, `$no_rek`, `$kartu_kredit`, `$credit_card`, `$card_number` |
+| **Contact / Personal** | `$no_hp`, `$no_telp`, `$phone_number`, `$alamat`, `$email`, `$tanggal_lahir`, `$tempat_lahir`, `$nama_ibu` |
+| **Biometric / Sensitive** | `$sidik_jari`, `$foto_ktp`, `$password`, `$pin` |
+
+If a PII variable is found inside a function that returns a JSON response, the finding is escalated to **HIGH**. Otherwise it is flagged as **MEDIUM**.
 
 ## Configuration
 
