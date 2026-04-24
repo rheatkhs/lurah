@@ -253,8 +253,26 @@
                 </div>
             </div>
 
+            <!-- Live Filter Box -->
+            <div style="margin-bottom: 2rem; position: relative;">
+                <input type="text" id="filter-input" placeholder="Filter findings by file or recommendation..." 
+                    style="width: 100%; padding: 1rem 1.5rem; border: 1px solid var(--border-light); border-radius: 0.75rem; font-family: inherit; font-size: 0.875rem; outline: none; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05); transition: border-color 0.2s;">
+                <i class="ri-search-2-line" style="position: absolute; right: 1.5rem; top: 50%; transform: translateY(-50%); color: var(--text-muted);"></i>
+            </div>
+
             <div id="findings-list">
                 <!-- findings injected here -->
+            </div>
+
+            <!-- Pagination Controls -->
+            <div id="pagination-controls" style="display: none; justify-content: center; align-items: center; gap: 2rem; margin-top: 3rem; padding-top: 2rem; border-top: 1px solid var(--border-light);">
+                <button id="prev-page" style="background: white; color: var(--text-main); border: 1px solid var(--border-light); padding: 0.5rem 1.5rem; border-radius: 999px; font-size: 0.75rem; font-weight: 700;">
+                    <i class="ri-arrow-left-s-line"></i> Previous
+                </button>
+                <span id="page-info" style="font-size: 0.75rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.1em;">Page 1 of 1</span>
+                <button id="next-page" style="background: white; color: var(--text-main); border: 1px solid var(--border-light); padding: 0.5rem 1.5rem; border-radius: 999px; font-size: 0.75rem; font-weight: 700;">
+                    Next <i class="ri-arrow-right-s-line"></i>
+                </button>
             </div>
         </section>
 
@@ -266,10 +284,21 @@
     <script>
         const scanBtn = document.getElementById('scan-btn');
         const pathInput = document.getElementById('project-path');
+        const filterInput = document.getElementById('filter-input');
         const resultsArea = document.getElementById('results-area');
         const loader = document.getElementById('loader');
         const findingsList = document.getElementById('findings-list');
         const emptyState = document.getElementById('empty-state');
+        
+        const paginationControls = document.getElementById('pagination-controls');
+        const prevBtn = document.getElementById('prev-page');
+        const nextBtn = document.getElementById('next-page');
+        const pageInfo = document.getElementById('page-info');
+
+        let allFindings = [];
+        let filteredFindings = [];
+        let currentPage = 1;
+        const itemsPerPage = 10;
 
         const indicators = {
             total: document.getElementById('c-total'),
@@ -277,6 +306,8 @@
             hi: document.getElementById('c-hi'),
             med: document.getElementById('c-med')
         };
+
+        const severityOrder = { 'CRITICAL': 0, 'HIGH': 1, 'MEDIUM': 2 };
 
         scanBtn.addEventListener('click', async () => {
             const path = pathInput.value.trim();
@@ -287,6 +318,7 @@
             loader.style.display = 'block';
             resultsArea.style.display = 'none';
             emptyState.style.display = 'none';
+            paginationControls.style.display = 'none';
 
             try {
                 const res = await fetch('/api/scan', {
@@ -298,7 +330,15 @@
                 if(!res.ok) throw new Error('Scan failed');
                 
                 const data = await res.json();
-                render(data.findings || []);
+                allFindings = data.findings || [];
+                
+                // Sort by severity initially
+                allFindings.sort((a, b) => severityOrder[a.severity] - severityOrder[b.severity]);
+                
+                filteredFindings = [...allFindings];
+                currentPage = 1;
+                render(filteredFindings);
+                updateStats(allFindings);
             } catch (err) {
                 alert('Analysis Error: ' + err.message);
             } finally {
@@ -308,26 +348,77 @@
             }
         });
 
+        filterInput.addEventListener('input', (e) => {
+            const query = e.target.value.toLowerCase();
+            filteredFindings = allFindings.filter(f => 
+                f.recommendation.toLowerCase().includes(query) || 
+                f.file.toLowerCase().includes(query) ||
+                f.severity.toLowerCase().includes(query)
+            );
+            currentPage = 1;
+            render(filteredFindings);
+        });
+
+        prevBtn.addEventListener('click', () => {
+            if(currentPage > 1) {
+                currentPage--;
+                render(filteredFindings);
+                window.scrollTo({ top: resultsArea.offsetTop - 100, behavior: 'smooth' });
+            }
+        });
+
+        nextBtn.addEventListener('click', () => {
+            const totalPages = Math.ceil(filteredFindings.length / itemsPerPage);
+            if(currentPage < totalPages) {
+                currentPage++;
+                render(filteredFindings);
+                window.scrollTo({ top: resultsArea.offsetTop - 100, behavior: 'smooth' });
+            }
+        });
+
+        function updateStats(findings) {
+            let cr = 0, h = 0, m = 0;
+            findings.forEach(f => {
+                if(f.severity === 'CRITICAL') cr++;
+                if(f.severity === 'HIGH') h++;
+                if(f.severity === 'MEDIUM') m++;
+            });
+            indicators.total.innerText = findings.length;
+            indicators.crit.innerText = cr;
+            indicators.hi.innerText = h;
+            indicators.med.innerText = m;
+        }
+
         function render(findings) {
             findingsList.innerHTML = '';
             resultsArea.style.display = 'block';
 
             if(findings.length === 0) {
+                if(!filterInput.value) resultsArea.style.display = 'none';
                 emptyState.style.display = 'block';
-                indicators.total.innerText = '0';
-                indicators.crit.innerText = '0';
-                indicators.hi.innerText = '0';
-                indicators.med.innerText = '0';
+                paginationControls.style.display = 'none';
                 return;
             }
 
-            let cr = 0, h = 0, m = 0;
+            emptyState.style.display = 'none';
 
-            findings.forEach(f => {
-                if(f.severity === 'CRITICAL') cr++;
-                if(f.severity === 'HIGH') h++;
-                if(f.severity === 'MEDIUM') m++;
+            // Pagination logic
+            const totalPages = Math.ceil(findings.length / itemsPerPage);
+            if (totalPages > 1) {
+                paginationControls.style.display = 'flex';
+                pageInfo.innerText = `Page ${currentPage} of ${totalPages}`;
+                prevBtn.disabled = currentPage === 1;
+                nextBtn.disabled = currentPage === totalPages;
+                prevBtn.style.opacity = prevBtn.disabled ? '0.4' : '1';
+                nextBtn.style.opacity = nextBtn.disabled ? '0.4' : '1';
+            } else {
+                paginationControls.style.display = 'none';
+            }
 
+            const start = (currentPage - 1) * itemsPerPage;
+            const paginatedItems = findings.slice(start, start + itemsPerPage);
+
+            paginatedItems.forEach(f => {
                 const item = document.createElement('div');
                 item.className = 'finding-item';
                 
@@ -347,11 +438,6 @@
                 `;
                 findingsList.appendChild(item);
             });
-
-            indicators.total.innerText = findings.length;
-            indicators.crit.innerText = cr;
-            indicators.hi.innerText = h;
-            indicators.med.innerText = m;
         }
     </script>
 </body>
